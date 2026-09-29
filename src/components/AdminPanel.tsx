@@ -2,7 +2,7 @@ import { RealTimeProgressModal } from './RealTimeProgressModal';
 import React, { useState, useRef } from 'react';
 import { AppConfig, Question, StudentResult, StudentUser, TeacherUser, AdminUser, KopSekolahConfig, TeacherConfigOverride } from '../types';
 import { decryptResult, encryptAppBackup, decryptAppBackup } from '../utils/crypto';
-import { formatQuestionText, getQuestionScoreAndCorrectness, getStudentAnswerDisplay, getCorrectAnswerDisplay } from '../utils/questionFormatter';
+import { formatQuestionText, renderMathInText, getQuestionScoreAndCorrectness, getStudentAnswerDisplay, getCorrectAnswerDisplay } from '../utils/questionFormatter';
 import { generateResultsPdfReport, generateIndividualStudentPdf, generateItemAnalysisPdfReport, ItemAnalysisData, DistractorDetail, defaultKopSekolah, extractClassFromNoPeserta, extractKodeSoalFromStudentInfo, PaperSizeOption, PaperOrientationOption, PdfPaperSettings } from '../utils/pdfGenerator';
 import { DownloadAnimationModal } from './DownloadAnimationModal';
 import { ExportQuestionModal } from './ExportQuestionModal';
@@ -9218,7 +9218,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         {(previewQuestion.categoryStatements || []).map((st, idx) => (
                           <tr key={st.id || idx} className="hover:bg-slate-50 transition-colors">
                             <td className="p-3 text-center font-bold text-slate-400">{idx + 1}</td>
-                            <td className="p-3 text-slate-900">{st.statement}</td>
+                            <td className="p-3 text-slate-900">
+                              <div dangerouslySetInnerHTML={{ __html: renderMathInText(st.statement) }} />
+                              {st.image && (
+                                <div className="mt-2">
+                                  <img
+                                    src={st.image}
+                                    alt={`Pernyataan #${idx + 1}`}
+                                    className="max-h-36 w-auto max-w-full object-contain rounded-xl border border-slate-200 bg-white p-1 shadow-2xs"
+                                  />
+                                </div>
+                              )}
+                            </td>
                             <td className="p-3 text-center">
                               <span className="inline-block bg-emerald-100 text-emerald-900 font-bold px-3 py-1 rounded-lg border border-emerald-300">
                                 ✓ {st.correctCategory}

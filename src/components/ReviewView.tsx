@@ -174,6 +174,24 @@ export const ReviewView: React.FC<ReviewViewProps> = ({ questions = [], answers 
                   </div>
                 )}
 
+                {/* Category Statement Images if present */}
+                {q.categoryStatements && q.categoryStatements.some((st) => st.image) && (
+                  <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-200">
+                    <p className="col-span-full text-xs font-bold text-indigo-900 uppercase tracking-wider">Lampiran Gambar Pernyataan Kategori:</p>
+                    {q.categoryStatements.map((st, sIdx) =>
+                      st.image ? (
+                        <div key={st.id || sIdx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-indigo-100 shadow-2xs">
+                          <span className="font-extrabold text-xs text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg shrink-0">#{sIdx + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-800 line-clamp-2">{st.statement}</p>
+                          </div>
+                          <img src={st.image} alt={`Pernyataan #${sIdx + 1}`} className="max-h-24 w-auto object-contain rounded-lg border border-slate-100 shrink-0" />
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                )}
+
                 <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-200 space-y-3">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Jawaban Anda:</p>

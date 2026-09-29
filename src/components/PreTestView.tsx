@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppConfig, StudentInfo } from '../types';
-import { BookOpen, Clock, ShieldAlert, PlayCircle, CheckCircle2, Award, WifiOff, Wifi, AlertTriangle, RefreshCw, ArrowRight, X, ArrowLeft, Maximize2, Split, Smartphone, Share2, PlusSquare } from 'lucide-react';
+import { BookOpen, Clock, ShieldAlert, PlayCircle, CheckCircle2, Award, WifiOff, Wifi, AlertTriangle, RefreshCw, ArrowRight, X, ArrowLeft, Maximize2, Split, Smartphone, Share2, PlusSquare, Layers } from 'lucide-react';
 import { requestAppFullscreen, isIOSDevice, isIOSStandalone } from '../utils/antiCheating';
 
 interface PreTestViewProps {
@@ -61,6 +61,23 @@ export const PreTestView: React.FC<PreTestViewProps> = ({
   const sessionStatus = effectiveSchedule?.sessionStatus || 'ACTIVE';
   const effectiveDuration = teacherConfig?.duration ?? config.duration;
   const effectiveKkm = teacherConfig?.kkm ?? config.kkm;
+
+  const availableQuestionsCount = (() => {
+    let qList = config.questions || [];
+    if (qList.length === 0) {
+      try {
+        const saved = localStorage.getItem('cbt_sosiologi_config_v2');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.questions)) {
+            qList = parsed.questions;
+          }
+        }
+      } catch (e) {}
+    }
+    const active = qList.filter((q) => q.isActive !== false);
+    return active.length > 0 ? active.length : qList.length;
+  })();
 
   const isLimitReached = studentAttemptsCount >= maxAttempts;
   const isSessionClosed = sessionStatus === 'CLOSED';
@@ -137,6 +154,17 @@ export const PreTestView: React.FC<PreTestViewProps> = ({
             </div>
           )}
 
+          {availableQuestionsCount === 0 && (
+            <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 sm:p-5 mb-6 text-amber-950 animate-pulse shadow-xs">
+              <div className="flex items-center gap-2 font-black text-sm sm:text-base mb-1 text-amber-900">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" /> Paket Soal Belum Terunduh di HP/Laptop Ini
+              </div>
+              <p className="text-xs sm:text-sm leading-relaxed font-semibold">
+                Naskah soal belum termuat di memori browser ini. Silakan sambungkan internet sejenak dan refresh halaman, atau minta Guru untuk membagikan file backup JSON soal agar Anda bisa langsung mengerjakan secara offline.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200">
             <div className="space-y-3 sm:space-y-4">
               <div>
@@ -157,9 +185,17 @@ export const PreTestView: React.FC<PreTestViewProps> = ({
                 </p>
               </div>
               <div>
-                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">Status Percobaan</p>
-                <p className={`font-bold text-xs sm:text-sm mt-0.5 flex items-center gap-1.5 ${isLimitReached ? 'text-red-600' : 'text-emerald-600'}`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0" /> Sudah dikerjakan: {studentAttemptsCount} / {maxAttempts}x
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">Naskah Soal Siap</p>
+                <p className="font-bold text-slate-800 text-xs sm:text-sm mt-0.5 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>{availableQuestionsCount} Butir Soal</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    availableQuestionsCount > 0 
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                      : 'bg-red-100 text-red-800 border-red-300'
+                  }`}>
+                    {availableQuestionsCount > 0 ? '✓ Siap Offline' : 'Belum Ada Soal'}
+                  </span>
                 </p>
               </div>
             </div>

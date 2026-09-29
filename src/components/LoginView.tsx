@@ -278,6 +278,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
       kodeSoal: matchedScheduleToken?.kodePaket || config.examToken || config.mapelTitle || config.mapel || 'SOS2026',
     };
 
+    try {
+      localStorage.setItem('cbt_sosiologi_config_v2', JSON.stringify(config));
+    } catch (e) {}
+
     onStudentLoginSuccess(studentInfo);
   };
 

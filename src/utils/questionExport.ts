@@ -892,7 +892,10 @@ function renderSingleQuestionHtml(q: Question, num: number, showKeyInline: boole
               (st, sIdx) => `
             <tr>
               <td style="border: 1px solid #000; padding: 4px 8px; text-align: center; font-weight: bold; vertical-align: top;">${sIdx + 1}</td>
-              <td style="border: 1px solid #000; padding: 4px 8px; vertical-align: top;">${cleanQuestionText(st.statement)}</td>
+              <td style="border: 1px solid #000; padding: 4px 8px; vertical-align: top;">
+                <div>${cleanQuestionText(st.statement)}</div>
+                ${st.image ? `<div style="margin-top: 4px;"><img src="${st.image}" style="max-height: 160px; max-width: 100%; object-fit: contain; border: 1px solid #ccc; border-radius: 4px;" alt="Gambar Pernyataan ${sIdx + 1}" /></div>` : ''}
+              </td>
               <td style="border: 1px solid #000; padding: 4px 8px; text-align: center; font-weight: bold; vertical-align: top; white-space: nowrap;">
                 ${
                   showKeyInline

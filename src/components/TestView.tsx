@@ -586,7 +586,18 @@ export const TestView: React.FC<TestViewProps> = ({
                               return (
                                 <tr key={stId} className="hover:bg-slate-50/80 transition-colors">
                                   <td className="p-3 sm:p-4 text-center font-bold text-slate-400 border-r border-slate-100">{idx + 1}</td>
-                                  <td className="p-3 sm:p-4 border-r border-slate-100 leading-relaxed font-semibold text-slate-900">{st.statement}</td>
+                                  <td className="p-3 sm:p-4 border-r border-slate-100 leading-relaxed font-semibold text-slate-900">
+                                    <div dangerouslySetInnerHTML={{ __html: renderMathInText(st.statement) }} />
+                                    {st.image && (
+                                      <div className="mt-2.5">
+                                        <img
+                                          src={st.image}
+                                          alt={`Gambar Pernyataan ${idx + 1}`}
+                                          className="max-h-48 sm:max-h-60 w-auto max-w-full object-contain rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs"
+                                        />
+                                      </div>
+                                    )}
+                                  </td>
                                   {catOpts.map((c) => {
                                     const isSelected = selectedVal === c;
                                     return (

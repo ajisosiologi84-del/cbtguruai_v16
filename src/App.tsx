@@ -319,6 +319,50 @@ export default function App() {
     };
   };
 
+  // One-time startup sync from Firebase for all users (including students & offline mode preparation)
+  // Ensures active questions, schedule tokens, and students are cached into localStorage so OFFLINE MODE works seamlessly
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return;
+    }
+
+    loadConfigFromFirebase().then((remoteConfig) => {
+      if (remoteConfig && Array.isArray(remoteConfig.questions) && remoteConfig.questions.length > 0) {
+        const cleanedQuestions = remoteConfig.questions.filter((q) => !isLegacyDefaultQuestion(q));
+        const merged = mergeRemoteConfigWithLocalToken({
+          ...remoteConfig,
+          questions: cleanedQuestions,
+        });
+        setConfig((prev) => {
+          const newConfig = {
+            ...prev,
+            ...merged,
+            questions: cleanedQuestions.length > 0 ? cleanedQuestions : prev.questions,
+            teachers: (merged.teachers && merged.teachers.length > 0) ? merged.teachers : prev.teachers,
+            students: (merged.students && merged.students.length > 0) ? merged.students : prev.students,
+            scheduleTokens: (merged.scheduleTokens && merged.scheduleTokens.length > 0) ? merged.scheduleTokens : prev.scheduleTokens,
+          };
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
+          } catch (e) {}
+          return newConfig;
+        });
+      }
+    }).catch(() => {});
+
+    loadStudentsFromFirebase().then((remoteStudents) => {
+      if (remoteStudents && remoteStudents.length > 0) {
+        setConfig((prev) => {
+          const updated = { ...prev, students: remoteStudents };
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
   // Firebase Synchronization Effect (Solusi A - Optimasi Kuota: Listener Realtime HANYA aktif untuk Guru/Admin)
   useEffect(() => {
     // Siswa diset Write-Only (hanya kirim nilai akhir).
@@ -741,18 +785,75 @@ export default function App() {
       return;
     }
 
-    // Filter active questions scoped to the student's assigned teacher/subject
-    const activePool = config.questions.filter((q) => {
-      if (q.isActive === false) return false;
-      if (studentInfo.kodeGuru && q.kodeGuru) {
-        if (q.kodeGuru.toUpperCase() !== studentInfo.kodeGuru.toUpperCase()) {
-          return false;
+    // Resolve questions pool with robust multi-stage fallbacks (Critical for Offline Mode & Cross-teacher Tokens)
+    let poolQuestions = (config.questions && config.questions.length > 0) ? config.questions : [];
+
+    // Fallback 0: If config.questions is empty in state, try reading directly from localStorage
+    if (poolQuestions.length === 0) {
+      try {
+        const savedRaw = localStorage.getItem(STORAGE_KEY);
+        if (savedRaw) {
+          const parsed = JSON.parse(savedRaw);
+          if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+            poolQuestions = parsed.questions;
+            setConfig((prev) => ({
+              ...prev,
+              questions: parsed.questions,
+            }));
+          }
         }
-      }
-      return true;
-    });
+      } catch (e) {}
+    }
+
+    // Stage 1: Check if matched schedule token has explicit soalIds
+    const scheduleTokens = config.scheduleTokens || [];
+    const matchedSched = scheduleTokens.find(
+      (st) =>
+        (st.token && config.examToken && st.token.trim().toUpperCase() === config.examToken.trim().toUpperCase()) ||
+        (st.kodePaket && studentInfo.kodeSoal && st.kodePaket.toUpperCase() === studentInfo.kodeSoal.toUpperCase()) ||
+        (st.paketSoal && studentInfo.mapel && studentInfo.mapel.includes(st.paketSoal))
+    );
+
+    let activePool: Question[] = [];
+
+    if (matchedSched && Array.isArray(matchedSched.soalIds) && matchedSched.soalIds.length > 0) {
+      const idSet = new Set(matchedSched.soalIds);
+      activePool = poolQuestions.filter((q) => idSet.has(q.id) && q.isActive !== false);
+    }
+
+    // Stage 2: Filter active questions scoped to the student's assigned teacher/subject
     if (activePool.length === 0) {
-      showAlert('Tidak ada soal yang aktif/dipilih di Bank Soal! Silakan aktifkan soal terlebih dahulu di Panel Pengaturan.');
+      activePool = poolQuestions.filter((q) => {
+        if (q.isActive === false) return false;
+        if (studentInfo.kodeGuru && q.kodeGuru) {
+          if (q.kodeGuru.toUpperCase() !== studentInfo.kodeGuru.toUpperCase()) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    // Stage 3 (Fallback A): If teacher code filtering yielded 0, filter all questions where isActive !== false
+    if (activePool.length === 0) {
+      activePool = poolQuestions.filter((q) => q.isActive !== false);
+    }
+
+    // Stage 4 (Fallback B): If all questions were somehow marked inactive or unset, use all available questions
+    if (activePool.length === 0 && poolQuestions.length > 0) {
+      activePool = [...poolQuestions];
+    }
+
+    // Stage 5 (Fallback C): If still empty, check default questions
+    if (activePool.length === 0 && Array.isArray(defaultQuestions) && defaultQuestions.length > 0) {
+      const validDefaults = defaultQuestions.filter((q) => !isLegacyDefaultQuestion(q));
+      if (validDefaults.length > 0) {
+        activePool = validDefaults;
+      }
+    }
+
+    if (activePool.length === 0) {
+      showAlert('Tidak ada soal yang aktif/tersedia di perangkat ini. Harap sambungkan internet sebentar saat login awal agar paket soal terunduh otomatis ke memori HP/Laptop.');
       return;
     }
 

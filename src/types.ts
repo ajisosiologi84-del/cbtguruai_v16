@@ -9,6 +9,7 @@ export interface CategoryStatement {
   id: string; // '1', '2', '3', etc.
   statement: string;
   correctCategory: string; // e.g. 'Benar' | 'Salah' or 'Ya' | 'Tidak'
+  image?: string; // Base64 data URL or image URL for statement item
 }
 
 export interface Question {

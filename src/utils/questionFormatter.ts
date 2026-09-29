@@ -172,6 +172,7 @@ export interface ResolvedStatement {
   id: string;
   statement: string;
   correctCategory: string;
+  image?: string;
 }
 
 /**
@@ -212,6 +213,7 @@ export function resolveCategoryStatements(q: Question): ResolvedStatement[] {
         id: String(stId),
         statement: String(statementText),
         correctCategory: String(correctCat),
+        image: st.image || (st as any).gambar || undefined,
       };
     });
   }
@@ -229,6 +231,7 @@ export function resolveCategoryStatements(q: Question): ResolvedStatement[] {
           id: String(idx + 1),
           statement: String(o.text),
           correctCategory: String(correctCat),
+          image: o.image,
         };
       });
     }
